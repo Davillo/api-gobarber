@@ -13,6 +13,13 @@ class UserController {
     return response.json({id,name,email,provider});
   }
 
+  async update(request, response){
+    console.log(request.userId);
+    return response.json();
+  }
+
+
+
 }
 
 export default new UserController();
