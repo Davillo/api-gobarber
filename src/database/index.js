@@ -5,6 +5,7 @@ import databaseConfig from '../config/database';
 const models = [User];
 
 class Database {
+
   constructor(){
     this.init();
   }
@@ -13,6 +14,7 @@ class Database {
     this.connection = new Sequelize(databaseConfig);
     models.map(model => model.init(this.connection));
   }
+
 }
 
 export default new Database();
