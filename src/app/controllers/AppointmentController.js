@@ -1,7 +1,9 @@
 import Appointment from '../models/Appointment';
-import {startOfHour, parseISO, isBefore} from 'date-fns';
+import {startOfHour, parseISO, isBefore, format} from 'date-fns';
+import pt from 'date-fns/locale/pt';
 import User from '../models/User';
 import File from '../models/File';
+import Notification from '../schemas/Notification';
 import * as Yup from 'yup';
 
 class AppointmentController {
@@ -51,11 +53,11 @@ class AppointmentController {
   /**
    * check if provider_id is a provider
   */
-  const isProvider = await User.findOne({
+  const provider = await User.findOne({
     where: {id: provider_id, provider: true}
   });
 
-  if(!isProvider){
+  if(!provider){
     return response.status(422).json({error: 'You can only create appointments with a valid provider'});
   }
 
@@ -87,6 +89,20 @@ class AppointmentController {
     user_id: request.userId,
     provider_id,
     date: hourStart
+  });
+
+  const formattedDate = format(
+    hourStart,
+    "'dia' dd 'de' MMMM', às' H:mm'h'",
+    {locale: pt}
+  )
+
+  /**
+   * Provider notification
+   */
+  await Notification.create({
+    content: `Novo agendamento de ${provider.name} para ${formattedDate}`,
+    user: provider_id
   });
 
   return response.json(appointment);
