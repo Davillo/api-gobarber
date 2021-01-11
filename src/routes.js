@@ -32,6 +32,7 @@ routes.get('/schedule', ScheduleController.index);
 
 routes.get('/notifications', NotificationController.index);
 routes.put('/notifications/:id', NotificationController.update);
+routes.delete('/notifications/:id', NotificationController.destroy);
 
 
 
