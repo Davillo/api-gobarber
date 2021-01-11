@@ -48,65 +48,71 @@ class AppointmentController {
       return response.status(422).json({error: 'Validation fails'});
     }
 
-   const {provider_id, date} = request.body;
-
-  /**
-   * check if provider_id is a provider
-  */
-  const provider = await User.findOne({
-    where: {id: provider_id, provider: true}
-  });
-
-  if(!provider){
-    return response.status(422).json({error: 'You can only create appointments with a valid provider'});
-  }
-
-  /**
-   * Check for paste dates
-   */
-  const hourStart = startOfHour(parseISO(date));
-
-  if(isBefore(hourStart, new Date())){
-    return response.status(422).json({error: 'Past dates are not permitted'});
-  }
-
-  /**
-   * check date availability
-   */
-  const checkAvailability = await Appointment.findOne({
-    where:{
-      provider_id,
-      canceled_at: null,
-      date: hourStart
+    if(request.userId === provider_id){
+      return response.status(422).json({error: 'It is not possible to create an appointment for the same user as provider'});
     }
-  });
 
-  if(checkAvailability){
-    return response.status(422).json({error: 'Appointment date is not available'});
+    const {provider_id, date} = request.body;
+
+    /**
+     * check if provider_id is a provider
+    */
+    const provider = await User.findOne({
+      where: {id: provider_id, provider: true}
+    });
+
+    if(!provider){
+      return response.status(422).json({error: 'You can only create appointments with a valid provider'});
+    }
+
+    /**
+     * Check for paste dates
+     */
+    const hourStart = startOfHour(parseISO(date));
+
+    if(isBefore(hourStart, new Date())){
+      return response.status(422).json({error: 'Past dates are not permitted'});
+    }
+
+
+
+    /**
+     * check date availability
+     */
+    const checkAvailability = await Appointment.findOne({
+      where:{
+        provider_id,
+        canceled_at: null,
+        date: hourStart
+      }
+    });
+
+    if(checkAvailability){
+      return response.status(422).json({error: 'Appointment date is not available'});
+    }
+
+    const appointment = await Appointment.create({
+      user_id: request.userId,
+      provider_id,
+      date: hourStart
+    });
+
+    const formattedDate = format(
+      hourStart,
+      "'dia' dd 'de' MMMM', às' H:mm'h'",
+      {locale: pt}
+    )
+
+    /**
+     * Provider notification
+     */
+    await Notification.create({
+      content: `Novo agendamento de ${provider.name} para ${formattedDate}`,
+      user: provider_id
+    });
+
+    return response.json(appointment);
   }
-
-  const appointment = await Appointment.create({
-    user_id: request.userId,
-    provider_id,
-    date: hourStart
-  });
-
-  const formattedDate = format(
-    hourStart,
-    "'dia' dd 'de' MMMM', às' H:mm'h'",
-    {locale: pt}
-  )
-
-  /**
-   * Provider notification
-   */
-  await Notification.create({
-    content: `Novo agendamento de ${provider.name} para ${formattedDate}`,
-    user: provider_id
-  });
-
-  return response.json(appointment);
-}
 
 }
 
