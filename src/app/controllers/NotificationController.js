@@ -1,4 +1,3 @@
-import { response } from 'express';
 import User from '../models/User';
 import Notification from '../schemas/Notification';
 
@@ -15,8 +14,7 @@ class NotificationController {
 
     const notifications = await Notification.find({
       user: request.userId
-    }).sort('createdAt')
-    .sort({createdAt: 'desc'})
+    }).sort({createdAt: 'desc'})
     .limit(20);
 
     return response.json(notifications);

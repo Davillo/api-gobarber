@@ -4,6 +4,7 @@ import pt from 'date-fns/locale/pt';
 import User from '../models/User';
 import File from '../models/File';
 import Notification from '../schemas/Notification';
+import Mail from '../../lib/Mail';
 import * as Yup from 'yup';
 
 class AppointmentController {
@@ -101,7 +102,7 @@ class AppointmentController {
       hourStart,
       "'dia' dd 'de' MMMM', às' H:mm'h'",
       {locale: pt}
-    )
+    );
 
     /**
      * Provider notification
@@ -115,7 +116,20 @@ class AppointmentController {
   }
 
   async destroy(request, response){
-    const appointment = await Appointment.findByPk(request.params.id);
+    const appointment = await Appointment.findByPk(request.params.id,{
+      include: [
+        {
+          model: User,
+          as: 'provider',
+          attributes: ['name', 'email']
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['name']
+        }
+      ]
+    });
 
     if(appointment.user_id !== request.userId){
       return response.status(401).json({
@@ -133,6 +147,21 @@ class AppointmentController {
 
     appointment.canceled_at = new Date();
     await appointment.save();
+
+    await  Mail.send({
+      to: `${appointment.provider.name} <${appointment.provider.email}>`,
+      subject: 'Agendamento cancelado',
+      template: 'cancellation',
+      context:{
+        provider: appointment.provider.name,
+        user: appointment.user.name,
+        date: format(
+          appointment.date,
+          "'dia' dd 'de' MMMM', às' H:mm'h'",
+          {locale: pt}
+        )
+      }
+    });
 
     return response.json(appointment);
   }
